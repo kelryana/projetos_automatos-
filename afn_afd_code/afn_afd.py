@@ -328,7 +328,7 @@ class AutomatonApp:
         self.automaton_combo = ttk.Combobox(
             self.control_frame,
             textvariable=self.automaton_var,
-            values=list(PREDEFINED_AUTOMATA.keys()) + ["(Modo de Criação - N/A)"],
+            values=list(PREDEFINED_AUTOMATA.keys()),
             state="readonly",
             width=40
         )
@@ -712,6 +712,6 @@ if __name__ == "__main__":
         app = AutomatonApp(main_root)
         main_root.mainloop()
     except ImportError:
-        print("Erro: A biblioteca Tkinter não está instalada ou não pôde ser carregada.")
+        print("se aparecer isso, é pq a biblioteca tkinter nao ta instalada, instale ela e tente dnv")
     except Exception as e:
-        print(f"Ocorreu um erro inesperado: {e}")
+        print(f"ocorreu um erro{e}")

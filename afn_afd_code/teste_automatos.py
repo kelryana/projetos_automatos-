@@ -2,7 +2,7 @@ import unittest
 try:
     from afn_afd import AFD, AFN, PREDEFINED_AUTOMATA
 except ImportError:
-    raise ImportError("Certifique-se de que este ficheiro de teste está na mesma pasta que 'afn_afd.py'")
+    raise ImportError("se esse erro aparecer, eh pq nao ta na mesma pasta, verificar isso")
 
 class TestAutomatonValidation(unittest.TestCase):
 
