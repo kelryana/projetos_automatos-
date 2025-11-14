@@ -23,14 +23,14 @@ class TestAutomatonValidation(unittest.TestCase):
 
     def test_afd_1_aceitas(self):
         afd = self.automata["afd_1"]
-        cadeias_aceitas = ["ba", "aaba", "bbbbba", "baab", "bababab"]
+        cadeias_aceitas = ["ba", "aaba", "bbbbba", "baab", "bababab", "babbab"]
         for cadeia in cadeias_aceitas:
             with self.subTest(cadeia=cadeia):
                 self.assertTrue(afd.validate(cadeia)[0], f"Deveria aceitar: '{cadeia}'")
 
     def test_afd_1_rejeitadas(self):
         afd = self.automata["afd_1"]
-        cadeias_rejeitadas = ["", "a", "b", "abb", "babbab", "bb"]
+        cadeias_rejeitadas = ["", "a", "b", "abb", "bb"]
         for cadeia in cadeias_rejeitadas:
             with self.subTest(cadeia=cadeia):
                 self.assertFalse(afd.validate(cadeia)[0], f"Deveria rejeitar: '{cadeia}'")
@@ -111,3 +111,5 @@ class TestAutomatonValidation(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    
+# py -m unittest teste_automatos --> para testar
