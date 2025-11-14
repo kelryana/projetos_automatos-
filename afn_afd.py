@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, font
-import time
 import math
 
 PREDEFINED_AUTOMATA = {
@@ -224,7 +223,7 @@ class AFN(Automaton):
                 path.append("REJEITA (Trap)")
                 return False, path, f"Nenhuma transição definida para '{symbol}' a partir de {path[-2]}."
 
-        is_accepted = not self.F.isjoint(current_states)
+        is_accepted = not self.F.isdisjoint(current_states)
         
         return is_accepted, path, f"Processamento concluído. Estados finais: {self._format_set(current_states)}."
 
