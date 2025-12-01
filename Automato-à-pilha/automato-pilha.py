@@ -2,13 +2,14 @@ import math
 import tkinter as tk
 from tkinter import ttk
 
-# ---------------------------
-#  Estilo Moderno
-# ---------------------------
+# ============================================================
+#           CONFIGURAÇÃO DO ESTILO MODERNO (TKINTER)
+# ============================================================
 def configure_style():
     style = ttk.Style()
-    style.theme_use("clam")
+    style.theme_use("clam")  # Tema moderno
 
+    # Estilo para caixas de texto arredondadas
     style.configure("Rounded.TEntry",
                     padding=10,
                     relief="flat",
@@ -16,6 +17,7 @@ def configure_style():
                     focusthickness=3,
                     focuscolor="#3b82f6")
 
+    # Estilo do botão moderno
     style.configure("Rounded.TButton",
                     padding=10,
                     font=("Segoe UI", 10, "bold"),
@@ -23,14 +25,17 @@ def configure_style():
                     background="#3b82f6",
                     foreground="white")
 
+    # Coloração do botão quando pressionado
     style.map("Rounded.TButton",
               background=[("active", "#2563eb")])
 
+    # Estilo de "cards" (molduras brancas)
     style.configure("Card.TFrame",
                     background="white",
                     relief="flat",
                     padding=20)
 
+    # Títulos e subtítulos
     style.configure("Header.TLabel",
                     font=("Segoe UI", 28, "bold"),
                     background="#f1f5f9")
@@ -41,19 +46,19 @@ def configure_style():
                     foreground="#64748b")
 
 
-# ---------------------------
-# Layout Principal
-# ---------------------------
+# ============================================================
+#                       JANELA PRINCIPAL
+# ============================================================
 root = tk.Tk()
 root.title("Simulador de Autômato a Pilha")
-root.state("zoomed")
-root.configure(bg="#f1f5f9")
+root.state("zoomed")         # Abre maximizado
+root.configure(bg="#f1f5f9") # Cor de fundo
 
 configure_style()
 
-# ---------------------------
-# Header
-# ---------------------------
+# ============================================================
+#                         CABEÇALHO
+# ============================================================
 header = tk.Frame(root, bg="#f1f5f9")
 header.pack(fill="x", padx=20, pady=10)
 
@@ -67,51 +72,57 @@ subtitle = ttk.Label(header,
                      style="SubHeader.TLabel")
 subtitle.pack(anchor="w")
 
-# ---------------------------
-# Área principal
-# ---------------------------
+# ============================================================
+#                  ÁREA PRINCIPAL (CANVAS + PAINEL)
+# ============================================================
 main_frame = tk.Frame(root, bg="#f1f5f9")
 main_frame.pack(fill="both", expand=True, padx=15)
 
-# Canvas à esquerda ----------------------
+# Canvas onde os estados e transições são desenhados
 canvas_frame = tk.Frame(main_frame, bg="white", bd=1, relief="solid")
 canvas_frame.pack(side="left", expand=True, fill="both", padx=(0,15))
 
 canvas = tk.Canvas(canvas_frame, bg="white")
 canvas.pack(fill="both", expand=True)
 
-# ---------------------------
-# Estruturas de dados (globais)
-# ---------------------------
-estados = {}          # {"q0": {"inicial": True, "final": False}}
-transicoes = []       # lista de dicionários de transição
-posicoes_estados = {} # {"q0": (x,y)}
-objetos_canvas = {}   # {"q0": {"circulo": id, "texto": id, "extra": id}}
+# ============================================================
+#      ESTRUTURAS DE DADOS DO AUTÔMATO (MEMÓRIA DO AP)
+# ============================================================
 
-# -----------------------------------------
-# SIMULAÇÃO DO AUTÔMATO A PILHA
-# -----------------------------------------
+estados = {}          # Ex.: {"q0": {"inicial": True, "final": False}}
+transicoes = []       # Lista de regras do AP
+posicoes_estados = {} # Posições (x,y) no canvas
+objetos_canvas = {}   # IDs dos objetos desenhados
 
+
+# ============================================================
+#                   SIMULAÇÃO DO AUTÔMATO A PILHA
+# ============================================================
 def simular_automato(entrada):
+    # Achar o estado inicial
     inicios = [e for e, info in estados.items() if info.get("inicial")]
     if not inicios:
         return "ERRO: nenhum estado inicial definido."
     inicial = inicios[0]
 
+    # Fila da BFS: (estado, índice da cadeia, pilha)
     fila = [(inicial, 0, "Z")] 
     visitados = set()
 
     while fila:
         estado, i, pilha = fila.pop(0)
 
+        # Evitar estados repetidos (loop infinito)
         chave = (estado, i, pilha)
         if chave in visitados:
             continue
         visitados.add(chave)
 
+        # Condição de aceitação: fim da cadeia + estado final + pilha vazia ou Z
         if i == len(entrada) and estados[estado].get("final") and (pilha == "Z" or pilha == ""):
             return "ACEITA"
 
+        # Testar todas transições
         for t in transicoes:
             if t["origem"] != estado:
                 continue
@@ -121,6 +132,7 @@ def simular_automato(entrada):
             empilha = t["empilha"]
             prox = t["destino"]
 
+            # Verifica leitura do símbolo
             if ler != "ε":
                 if i >= len(entrada) or entrada[i] != ler:
                     continue
@@ -128,6 +140,7 @@ def simular_automato(entrada):
             else:
                 prox_i = i
 
+            # Verifica topo da pilha
             if desempilha != "ε":
                 if not pilha or pilha[-1] != desempilha:
                     continue
@@ -135,86 +148,83 @@ def simular_automato(entrada):
             else:
                 nova_pilha = pilha
 
+            # Empilha novo símbolo
             if empilha != "ε":
                 nova_pilha = nova_pilha + empilha
 
+            # Empilha nova configuração na fila
             fila.append((prox, prox_i, nova_pilha))
 
     return "REJEITA"
 
 
+# ============================================================
+#            FUNÇÕES DE DESENHO NO CANVAS (DIAGRAMA)
+# ============================================================
 
-# ---------------------------
-# Funções de desenho
-# ---------------------------
 def desenhar_estado(nome):
-    """Desenha um estado no canvas se ainda não existir."""
+    """Desenha um estado (bolinha) se ainda não existir."""
     if nome in objetos_canvas:
-        # Atualizar desenho de inicial/final se necessário
         atualizar_decoracoes_estado(nome)
         return
 
+    # Distribuição simples horizontal
     total = len(objetos_canvas)
-    # posição automática simples (linha)
     x = 150 + (total * 150)
     y = 150
 
     posicoes_estados[nome] = (x, y)
 
-    # Desenhar círculo
     r = 35
-    circ = canvas.create_oval(x - r, y - r, x + r, y + r, fill="#e2e8f0", outline="#475569", width=3)
+    circ = canvas.create_oval(x - r, y - r, x + r, y + r,
+                              fill="#e2e8f0", outline="#475569", width=3)
 
-    # Nome do estado
-    txt = canvas.create_text(x, y, text=nome, font=("Segoe UI", 14, "bold"), fill="#1e293b")
+    txt = canvas.create_text(x, y, text=nome, font=("Segoe UI", 14, "bold"),
+                             fill="#1e293b")
 
     objetos_canvas[nome] = {"circulo": circ, "texto": txt, "r": r}
 
     atualizar_decoracoes_estado(nome)
 
+
 def atualizar_decoracoes_estado(nome):
-    """Desenha/atualiza seta de entrada para inicial e círculo duplo para final."""
-    # Remover decorações antigas se houver
+    """Desenha círculo duplo e seta de inicial quando necessário."""
+    # Remove extras antigos
     extra_id = objetos_canvas[nome].get("extra")
     if extra_id:
-        # extra pode ser uma lista de objetos
         if isinstance(extra_id, list):
             for oid in extra_id:
-                try:
-                    canvas.delete(oid)
-                except:
-                    pass
+                canvas.delete(oid)
         else:
-            try:
-                canvas.delete(extra_id)
-            except:
-                pass
+            canvas.delete(extra_id)
         objetos_canvas[nome]["extra"] = None
 
     x, y = posicoes_estados[nome]
-    r = objetos_canvas[nome].get("r", 35)
+    r = objetos_canvas[nome]["r"]
     extras = []
 
-    # seta de entrada (estado inicial)
-    if estados.get(nome, {}).get("inicial"):
-        # seta à esquerda do círculo
-        line = canvas.create_line(x - r - 30, y, x - r - 5, y, arrow=tk.LAST, width=2)
+    # Se for inicial, desenha seta de entrada
+    if estados[nome].get("inicial"):
+        line = canvas.create_line(x - r - 30, y, x - r - 5, y,
+                                  arrow=tk.LAST, width=2)
         extras.append(line)
 
-    # círculo duplo (estado final)
-    if estados.get(nome, {}).get("final"):
-        inner = canvas.create_oval(x - r + 6, y - r + 6, x + r - 6, y + r - 6, outline="#475569", width=2)
+    # Se for final, desenha círculo duplo
+    if estados[nome].get("final"):
+        inner = canvas.create_oval(x - r + 6, y - r + 6,
+                                   x + r - 6, y + r - 6,
+                                   outline="#475569", width=2)
         extras.append(inner)
 
-    if extras:
-        objetos_canvas[nome]["extra"] = extras
+    objetos_canvas[nome]["extra"] = extras
+
 
 def desenhar_transicao(origem, destino, simbolo_label=None):
     """
-    Desenha uma linha com seta entre dois estados. Se origem==destino, desenha um laço.
-    simbolo_label: texto a ser exibido perto da seta (pode ser None).
+    Desenha linha ou laço representando a transição entre dois estados.
     """
-    # Garantir que ambos os estados existam no canvas (desenhar se necessário)
+
+    # Se o estado ainda não foi desenhado, desenha agora
     if origem not in posicoes_estados:
         desenhar_estado(origem)
     if destino not in posicoes_estados:
@@ -222,46 +232,58 @@ def desenhar_transicao(origem, destino, simbolo_label=None):
 
     x1, y1 = posicoes_estados[origem]
     x2, y2 = posicoes_estados[destino]
-    r1 = objetos_canvas[origem].get("r", 35)
-    r2 = objetos_canvas[destino].get("r", 35)
+    r1 = objetos_canvas[origem]["r"]
+    r2 = objetos_canvas[destino]["r"]
 
+    # Caso seja laço (self-loop)
     if origem == destino:
-        # Desenhar loop (oval pequeno acima do estado)
         loop_r = 30
-        loop = canvas.create_oval(x1 - loop_r, y1 - r1 - 2*loop_r, x1 + loop_r, y1 - r1, outline="#0f172a", width=2)
-        # seta manual (pequena)
+        loop = canvas.create_oval(x1 - loop_r,
+                                  y1 - r1 - 2*loop_r,
+                                  x1 + loop_r,
+                                  y1 - r1,
+                                  outline="#0f172a", width=2)
         arrow_x = x1 + loop_r
         arrow_y = y1 - r1 - loop_r/2
-        arrow = canvas.create_line(arrow_x - 10, arrow_y + 6, arrow_x, arrow_y, arrow=tk.LAST, width=2)
+        arrow = canvas.create_line(arrow_x - 10, arrow_y + 6,
+                                   arrow_x, arrow_y,
+                                   arrow=tk.LAST, width=2)
         if simbolo_label:
-            lbl = canvas.create_text(x1, y1 - r1 - loop_r - 10, text=simbolo_label, font=("Segoe UI", 10))
+            lbl = canvas.create_text(x1, y1 - r1 - loop_r - 10,
+                                     text=simbolo_label, font=("Segoe UI", 10))
             return (loop, arrow, lbl)
         return (loop, arrow)
 
-    # Calcular bordas para que a linha não entre no círculo
+    # Transição normal (linha entre estados)
     dx = x2 - x1
     dy = y2 - y1
     dist = math.hypot(dx, dy)
     if dist == 0:
         dist = 0.0001
-    # offset dos centros para as bordas dos círculos
+
+    # Ajusta linha para encostar na borda do círculo
     offset_x1 = x1 + dx * (r1 / dist)
     offset_y1 = y1 + dy * (r1 / dist)
     offset_x2 = x2 - dx * (r2 / dist)
     offset_y2 = y2 - dy * (r2 / dist)
 
-    line = canvas.create_line(offset_x1, offset_y1, offset_x2, offset_y2, arrow=tk.LAST, width=2, smooth=True)
+    line = canvas.create_line(offset_x1, offset_y1,
+                              offset_x2, offset_y2,
+                              arrow=tk.LAST, width=2, smooth=True)
 
     if simbolo_label:
         xm = (offset_x1 + offset_x2) / 2
         ym = (offset_y1 + offset_y2) / 2
-        lbl = canvas.create_text(xm, ym - 10, text=simbolo_label, font=("Segoe UI", 10))
+        lbl = canvas.create_text(xm, ym - 10,
+                                 text=simbolo_label, font=("Segoe UI", 10))
         return (line, lbl)
     return (line,)
 
-# ---------------------------
-# Painel lateral
-# ---------------------------
+
+# ============================================================
+#                 PAINEL LATERAL COM ABAS
+# ============================================================
+
 panel = ttk.Frame(main_frame, style="Card.TFrame")
 panel.pack(side="right", fill="y", padx=5)
 
@@ -271,7 +293,7 @@ panel_title = tk.Label(panel,
                        bg="white")
 panel_title.pack(anchor="w")
 
-# Abas -----------------------------------
+# Abas
 tabs = ttk.Notebook(panel)
 tab_estados = ttk.Frame(tabs)
 tab_trans = ttk.Frame(tabs)
@@ -281,48 +303,39 @@ tabs.add(tab_estados, text="Estados")
 tabs.add(tab_trans, text="Transições")
 tabs.pack(fill="both", expand=True, pady=10)
 
-# ---------------------------
-# Conteúdo da aba ESTADOS
-# ---------------------------
-for widget in tab_estados.winfo_children():
-    widget.destroy()
 
-# Título interno
+# ============================================================
+#                       ABA ESTADOS
+# ============================================================
+
+# Título
 title_est = tk.Label(tab_estados,
                      text="Adicionar Estado",
                      font=("Segoe UI", 10, "bold"),
                      bg="white")
 title_est.pack(anchor="w", pady=(10,0))
 
-# Frame do input e botão "+"
+# Entrada + botão
 input_frame = tk.Frame(tab_estados, bg="white")
 input_frame.pack(fill="x", pady=(5,10))
 
 entry_estado = ttk.Entry(input_frame, style="Rounded.TEntry")
 entry_estado.pack(side="left", fill="x", expand=True, padx=(0,10))
 
-# Checkboxes para marcar estado inicial e final
+# Checkboxes
 var_inicial = tk.BooleanVar()
 var_final = tk.BooleanVar()
 
-chk_inicial = tk.Checkbutton(
-    tab_estados,
-    text="Estado Inicial",
-    bg="white",
-    variable=var_inicial
-)
+chk_inicial = tk.Checkbutton(tab_estados, text="Estado Inicial",
+                             bg="white", variable=var_inicial)
 chk_inicial.pack(anchor="w")
 
-chk_final = tk.Checkbutton(
-    tab_estados,
-    text="Estado Final",
-    bg="white",
-    variable=var_final
-)
+chk_final = tk.Checkbutton(tab_estados, text="Estado Final",
+                           bg="white", variable=var_final)
 chk_final.pack(anchor="w")
 
 def update_comboboxes():
-    """Atualiza as opções dos comboboxes de origem/destino com os estados atuais."""
+    """Atualiza comboboxes com estados existentes."""
     vals = list(estados.keys())
     cb_origem['values'] = vals
     cb_destino['values'] = vals
@@ -332,9 +345,8 @@ def adicionar_estado():
     if nome == "":
         return
 
-    # Evitar duplicata:
+    # Atualizar se já existir
     if nome in estados:
-        # Atualiza flags e decorações
         estados[nome]["inicial"] = var_inicial.get()
         estados[nome]["final"] = var_final.get()
         atualizar_decoracoes_estado(nome)
@@ -343,41 +355,36 @@ def adicionar_estado():
             "inicial": var_inicial.get(),
             "final": var_final.get()
         }
-        # inserir visual e na listbox
+
+        # Texto de exibição
         label = nome
         tags = []
-        if estados[nome]["inicial"]:
-            tags.append("I")
-        if estados[nome]["final"]:
-            tags.append("F")
+        if estados[nome]["inicial"]: tags.append("I")
+        if estados[nome]["final"]: tags.append("F")
         if tags:
             label += " (" + ", ".join(tags) + ")"
+
         estados_listbox.insert(tk.END, label)
         desenhar_estado(nome)
 
-    # Atualiza comboboxes de transição
     update_comboboxes()
 
-    # Limpar campos
     entry_estado.delete(0, tk.END)
     var_inicial.set(False)
     var_final.set(False)
 
+# Botão "+"
 btn_add_estado = tk.Button(input_frame,
                            text="+",
                            font=("Segoe UI", 14, "bold"),
                            width=3,
                            bg="#3b82f6",
                            fg="white",
-                           relief="flat",
-                           activebackground="#2563eb",
-                           activeforeground="white",
-                           bd=0)
+                           relief="flat")
 btn_add_estado.pack(side="right")
-
 btn_add_estado.configure(command=adicionar_estado)
 
-# Área com Scroll para listar estados
+# Lista de estados com scroll
 list_frame = tk.Frame(tab_estados, bg="white")
 list_frame.pack(fill="both", expand=True)
 
@@ -398,13 +405,14 @@ estados_listbox.pack(fill="both", expand=True)
 
 scrollbar.config(command=estados_listbox.yview)
 
-# ---------------------------
-# Conteúdo da aba Transições
-# ---------------------------
+
+# ============================================================
+#                       ABA TRANSIÇÕES
+# ============================================================
+
 def add_section(parent, text):
     label = tk.Label(parent, text=text,
-                     font=("Segoe UI", 10, "bold"),
-                     bg="white")
+                     font=("Segoe UI", 10, "bold"), bg="white")
     label.pack(anchor="w", pady=(10,0))
 
 add_section(tab_trans, "Estado Origem")
@@ -438,6 +446,7 @@ def salvar_transicao():
         print("Preencha todos os campos da transição!")
         return
 
+    # Cria dicionário da transição
     transicao = {
         "origem": origem,
         "destino": destino,
@@ -448,30 +457,31 @@ def salvar_transicao():
 
     transicoes.append(transicao)
 
-    # Desenha transição (cria estados no canvas caso ainda não existam)
+    # Desenhar visualmente
     simbolo_label = f"{entrada}, {pilha}→{transicao['empilha']}"
     desenhar_transicao(origem, destino, simbolo_label)
 
     print("Transição adicionada:", transicao)
 
-    # Limpa campos
+    # Resetar campos
     cb_origem.set("")
     cb_destino.set("")
     cb_entrada.set("")
     cb_pilha.set("")
     entry_empilha.delete(0, tk.END)
 
-# Botão de adicionar ---------------------
+# Botão adicionar transição
 btn_add = ttk.Button(tab_trans,
                      text="Adicionar Transição",
-                     style="Rounded.TButton")
+                     style="Rounded.TButton",
+                     command=salvar_transicao)
 btn_add.pack(fill="x", pady=20)
 
-btn_add.configure(command=salvar_transicao)
 
-# ---------------------------
-# SIMULAÇÃO
-# ---------------------------
+# ============================================================
+#                   ABA DE SIMULAÇÃO DO AP
+# ============================================================
+
 sim_frame = ttk.Frame(panel, style="Card.TFrame")
 sim_frame.pack(fill="x", pady=20)
 
@@ -502,14 +512,14 @@ def iniciar_simulacao():
     else:
         messagebox.showwarning("Resultado", f"A cadeia '{cadeia}' foi rejeitada.")
 
-
 run_button = ttk.Button(sim_frame,
                         text="Iniciar",
                         style="Rounded.TButton",
                         command=iniciar_simulacao)
 run_button.pack(fill="x")
 
-# Inicializa comboboxes vazios corretamente
+
+# Inicializa comboboxes
 update_comboboxes()
 
 root.mainloop()
